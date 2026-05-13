@@ -7,6 +7,7 @@ export default function RawShowcase({ particleRef }){
   const [isActive, setIsActive] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [videoError, setVideoError] = useState(null)
   const scrollFrameRef = useRef(null)
   const lastScrollRef = useRef(0)
   const scrollProgressRef = useRef(0)
@@ -93,12 +94,51 @@ export default function RawShowcase({ particleRef }){
 
   // Handle video metadata loaded
   const handleVideoLoadedMetadata = useCallback(() => {
+    console.log('Video metadata loaded, duration:', videoRef.current?.duration)
     setVideoReady(true)
+    setVideoError(null)
     // Small delay to ensure video is fully ready
     setTimeout(() => {
       updateVideoTimeline()
     }, 50)
   }, [updateVideoTimeline])
+
+  // Handle video can play through
+  const handleCanPlayThrough = useCallback(() => {
+    console.log('Video can play through')
+    if (!videoReady) {
+      setVideoReady(true)
+      setVideoError(null)
+    }
+  }, [videoReady])
+
+  // Handle video error
+  const handleVideoError = useCallback((e) => {
+    console.error('Video loading error:', e)
+    const error = videoRef.current?.error
+    let errorMsg = 'Error loading video'
+    
+    if (error) {
+      switch(error.code) {
+        case error.MEDIA_ERR_ABORTED:
+          errorMsg = 'Video loading was aborted'
+          break
+        case error.MEDIA_ERR_NETWORK:
+          errorMsg = 'Network error loading video'
+          break
+        case error.MEDIA_ERR_DECODE:
+          errorMsg = 'Video decode error'
+          break
+        case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+          errorMsg = 'Video format not supported'
+          break
+      }
+    }
+    
+    setVideoError(errorMsg)
+    // Mark as ready anyway so user can still interact
+    setVideoReady(true)
+  }, [])
 
   // Handle video ended
   const handleVideoEnded = useCallback(() => {
@@ -138,14 +178,15 @@ export default function RawShowcase({ particleRef }){
             <video
               ref={videoRef}
               onLoadedMetadata={handleVideoLoadedMetadata}
+              onCanPlayThrough={handleCanPlayThrough}
               onEnded={handleVideoEnded}
+              onError={handleVideoError}
               onContextMenu={handleContextMenu}
               className="w-full h-full object-cover"
               muted
               playsInline
-              preload="metadata"
             >
-              <source src="/intro.mp4" type="video/mp4" />
+              <source src="/v1.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
             
@@ -187,6 +228,18 @@ export default function RawShowcase({ particleRef }){
               <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-2 border-transparent border-t-yellow-600 rounded-full animate-spin" />
                 <p className="text-white/60 text-sm">Loading immersive experience...</p>
+                {videoError && (
+                  <p className="text-red-400/80 text-xs text-center max-w-xs">{videoError}</p>
+                )}
+                <button
+                  onClick={() => {
+                    setVideoReady(true)
+                    setVideoError(null)
+                  }}
+                  className="mt-4 px-4 py-2 text-xs text-white/70 border border-white/20 rounded hover:border-white/40 hover:text-white transition-all"
+                >
+                  Skip Loading
+                </button>
               </div>
             </div>
           )}
