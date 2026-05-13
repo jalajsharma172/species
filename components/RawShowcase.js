@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 
-export default function RawShowcase({ particleRef }){
+export default function RawShowcase({ particleRef }) {
   const sectionRef = useRef(null)
   const videoRef = useRef(null)
   const containerRef = useRef(null)
@@ -11,37 +11,60 @@ export default function RawShowcase({ particleRef }){
   const scrollFrameRef = useRef(null)
   const lastScrollRef = useRef(0)
   const scrollProgressRef = useRef(0)
+  const targetTimeRef = useRef(0)
+  const renderFrameRef = useRef(null)
+
+  // Continuous render loop for smooth video scrubbing
+  const renderLoop = useCallback(() => {
+    if (videoRef.current && videoReady && videoRef.current.duration) {
+      const current = videoRef.current.currentTime
+      const target = targetTimeRef.current
+      const diff = target - current
+
+      // Only update if difference is noticeable
+      if (Math.abs(diff) > 0.01) {
+        // Lerp factor (lower is smoother but slower to catch up)
+        videoRef.current.currentTime = current + diff * 0.08
+      }
+    }
+    renderFrameRef.current = requestAnimationFrame(renderLoop)
+  }, [videoReady])
+
+  // Start the render loop when video is ready
+  useEffect(() => {
+    if (videoReady) {
+      renderFrameRef.current = requestAnimationFrame(renderLoop)
+    }
+    return () => {
+      if (renderFrameRef.current) {
+        cancelAnimationFrame(renderFrameRef.current)
+      }
+    }
+  }, [videoReady, renderLoop])
 
   // Calculate scroll progress and sync video timeline
   const updateVideoTimeline = useCallback(() => {
-    if (!videoRef.current || !sectionRef.current || !videoReady) return
+    if (!videoRef.current || !containerRef.current || !videoReady) return
 
-    const element = sectionRef.current
-    const rect = element.getBoundingClientRect()
+    const container = containerRef.current
+    const rect = container.getBoundingClientRect()
     const windowHeight = window.innerHeight
     const elementHeight = rect.height
 
-    // Calculate scroll progress: 0 to 1
+    // Calculate scroll progress: 0 to 1 based on sticky container
     let scrollProgress = 0
+    const scrollDistance = elementHeight - windowHeight
 
-    if (rect.top <= windowHeight && rect.bottom >= 0) {
-      const distanceFromTop = windowHeight - rect.top
-      const totalDistance = windowHeight + elementHeight
-      scrollProgress = Math.max(0, Math.min(1, distanceFromTop / totalDistance))
+    if (scrollDistance > 0) {
+      scrollProgress = Math.max(0, Math.min(1, -rect.top / scrollDistance))
     }
 
     scrollProgressRef.current = scrollProgress
 
-    // Map scroll progress to video timeline with smooth damping
+    // Map scroll progress to video timeline
     if (videoRef.current.duration) {
-      const targetTime = scrollProgress * videoRef.current.duration
-      const currentTime = videoRef.current.currentTime
-      const timeDifference = Math.abs(currentTime - targetTime)
-
-      // Only update if change is significant (prevents constant micro-updates)
-      if (timeDifference > 0.08) {
-        videoRef.current.currentTime = targetTime
-      }
+      // Set the target time instead of updating video directly
+      targetTimeRef.current = scrollProgress * videoRef.current.duration
 
       // Update playing state based on scroll
       setIsPlaying(scrollProgress > 0.05 && scrollProgress < 0.95)
@@ -59,7 +82,7 @@ export default function RawShowcase({ particleRef }){
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll)
       if (scrollFrameRef.current) {
@@ -68,7 +91,7 @@ export default function RawShowcase({ particleRef }){
     }
   }, [videoReady, updateVideoTimeline])
 
-  // Intersection Observer to detect when section is in view
+  // Intersection Observer to detect when container is in view
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -83,8 +106,8 @@ export default function RawShowcase({ particleRef }){
       }
     )
 
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current)
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
     }
 
     return () => {
@@ -117,9 +140,9 @@ export default function RawShowcase({ particleRef }){
     console.error('Video loading error:', e)
     const error = videoRef.current?.error
     let errorMsg = 'Error loading video'
-    
+
     if (error) {
-      switch(error.code) {
+      switch (error.code) {
         case error.MEDIA_ERR_ABORTED:
           errorMsg = 'Video loading was aborted'
           break
@@ -134,7 +157,7 @@ export default function RawShowcase({ particleRef }){
           break
       }
     }
-    
+
     setVideoError(errorMsg)
     // Mark as ready anyway so user can still interact
     setVideoReady(true)
@@ -153,22 +176,15 @@ export default function RawShowcase({ particleRef }){
   return (
     <>
       {/* Spacer for scroll behavior - gives enough scroll distance to play through video */}
-      <div 
+      <div
         ref={containerRef}
-        className="relative"
-        style={{
-          minHeight: isActive && videoReady ? '250vh' : 'auto',
-          transition: 'min-height 0.3s ease-out',
-          willChange: 'min-height'
-        }}
+        className="relative w-full h-[400vh]"
       >
         {/* Sticky video container */}
-        <section 
+        <section
           ref={sectionRef}
-          id="raw" 
-          className={`relative w-full flex items-center justify-center transition-all duration-300 ${
-            isActive ? 'fixed top-0 left-0 right-0 h-screen z-30' : 'relative min-h-screen'
-          }`}
+          id="raw"
+          className="sticky top-0 w-full h-screen flex items-center justify-center overflow-hidden z-30"
           style={{
             background: 'linear-gradient(135deg, #1a0f0a 0%, #2d1810 50%, #1a0f0a 100%)',
           }}
@@ -186,23 +202,23 @@ export default function RawShowcase({ particleRef }){
               muted
               playsInline
             >
-              <source src="/v1.mp4" type="video/mp4" />
+              <source src="/output.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
-            
+
             {/* Premium gradient overlay for cinematic effect */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
-            
+
             {/* Subtle vignette effect */}
-            <div className="absolute inset-0 shadow-inner" 
+            <div className="absolute inset-0 shadow-inner"
               style={{
                 boxShadow: 'inset 0 0 80px rgba(0,0,0,0.6), inset 0 0 40px rgba(0,0,0,0.3)'
-              }} 
+              }}
             />
           </div>
 
           {/* Content overlay (appears as video progresses) */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500" 
+          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500"
             style={{
               opacity: isActive && videoReady ? Math.max(0, (scrollProgressRef.current - 0.7) * 3.33) : 0,
             }}>
@@ -213,7 +229,7 @@ export default function RawShowcase({ particleRef }){
           </div>
 
           {/* Scroll indicator (shows on first visit) */}
-          {videoReady && isActive && (
+          {videoReady && scrollProgressRef.current < 0.05 && (
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-pulse">
               <div className="text-white/60 text-xs md:text-sm mb-2 text-center tracking-widest uppercase">Scroll to explore</div>
               <svg className="w-6 h-6 text-white/60 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -258,11 +274,11 @@ export default function RawShowcase({ particleRef }){
                 </h2>
               </div>
               <p className="text-lg md:text-xl text-gray-300 leading-relaxed">
-                Experience the journey from raw turmeric roots to our premium spice blend. 
+                Experience the journey from raw turmeric roots to our premium spice blend.
                 Each ingredient is carefully selected and processed to maintain maximum flavor and nutritional value.
               </p>
               <p className="text-base md:text-lg text-gray-400 leading-relaxed">
-                Fresh turmeric roots and dried red chillies presented with macro texture studies 
+                Fresh turmeric roots and dried red chillies presented with macro texture studies
                 and layered parallax for an immersive visual experience.
               </p>
               <div className="pt-4 md:pt-8">
@@ -272,9 +288,9 @@ export default function RawShowcase({ particleRef }){
               </div>
             </div>
             <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
-              <img 
-                src="/truck.png" 
-                alt="Turmeric Roots - Premium Quality Ingredients" 
+              <img
+                src="/truck.png"
+                alt="Turmeric Roots - Premium Quality Ingredients"
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
