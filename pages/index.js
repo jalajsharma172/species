@@ -7,7 +7,7 @@ import PowderSection from '../components/PowderSection'
 import PackagingSection from '../components/PackagingSection'
 import FinalReveal from '../components/FinalReveal'
 
-export default function Home(){
+export default function Home() {
   const particleRef = useRef(null)
 
   return (
@@ -15,10 +15,10 @@ export default function Home(){
       <main className="relative">
         <Hero particleRef={particleRef} />
         <RawShowcase particleRef={particleRef} />
-        <GrinderSection particleRef={particleRef} />
-        <PowderSection particleRef={particleRef} />
-        <PackagingSection particleRef={particleRef} />
-        <FinalReveal particleRef={particleRef} />
+        {/* <GrinderSection particleRef={particleRef} /> */}
+        {/* <PowderSection particleRef={particleRef} /> */}
+        {/* <PackagingSection particleRef={particleRef} /> */}
+        {/* <FinalReveal particleRef={particleRef} /> */}
       </main>
     </Layout>
   )

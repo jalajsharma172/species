@@ -13,6 +13,8 @@ export default function RawShowcase({ particleRef }) {
   const scrollProgressRef = useRef(0)
   const targetTimeRef = useRef(0)
   const renderFrameRef = useRef(null)
+  const lastUpdateTimeRef = useRef(0)
+  const overlayRef = useRef(null)
 
   // Continuous render loop for smooth video scrubbing
   const renderLoop = useCallback(() => {
@@ -20,11 +22,14 @@ export default function RawShowcase({ particleRef }) {
       const current = videoRef.current.currentTime
       const target = targetTimeRef.current
       const diff = target - current
+      const now = performance.now()
 
-      // Only update if difference is noticeable
-      if (Math.abs(diff) > 0.01) {
-        // Lerp factor (lower is smoother but slower to catch up)
-        videoRef.current.currentTime = current + diff * 0.08
+      // Increase throttle to ~12-15fps (80ms) and remove lerping completely.
+      // Lerping causes a pile-up of frame decodes which exponentially lags 
+      // towards the end of standard MP4 files.
+      if (Math.abs(diff) > 0.04 && (now - lastUpdateTimeRef.current > 80)) {
+        videoRef.current.currentTime = target
+        lastUpdateTimeRef.current = now
       }
     }
     renderFrameRef.current = requestAnimationFrame(renderLoop)
@@ -69,7 +74,13 @@ export default function RawShowcase({ particleRef }) {
       // Update playing state based on scroll
       setIsPlaying(scrollProgress > 0.05 && scrollProgress < 0.95)
     }
-  }, [videoReady])
+
+    // Update overlay opacity directly for performance (avoids React re-renders)
+    if (overlayRef.current) {
+      const opacity = isActive && videoReady ? Math.max(0, (scrollProgress - 0.7) * 3.33) : 0;
+      overlayRef.current.style.opacity = opacity;
+    }
+  }, [videoReady, isActive])
 
   // Smooth scroll listener with requestAnimationFrame
   useEffect(() => {
@@ -199,6 +210,7 @@ export default function RawShowcase({ particleRef }) {
               onError={handleVideoError}
               onContextMenu={handleContextMenu}
               className="w-full h-full object-cover"
+              style={{ willChange: 'transform', transform: 'translateZ(0)' }}
               muted
               playsInline
             >
@@ -218,11 +230,8 @@ export default function RawShowcase({ particleRef }) {
           </div>
 
           {/* Content overlay (appears as video progresses) */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500"
-            style={{
-              opacity: isActive && videoReady ? Math.max(0, (scrollProgressRef.current - 0.7) * 3.33) : 0,
-            }}>
-            <div className="text-center text-white z-10">
+          <div ref={overlayRef} className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-100" style={{ opacity: 0 }}>
+            <div className="text-center text-white z-10" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
               <h3 className="text-5xl md:text-6xl font-bold mb-4 font-serif">Raw Ingredients</h3>
               <p className="text-lg md:text-xl text-gray-200">Fresh turmeric roots and dried red chillies</p>
             </div>
@@ -297,28 +306,7 @@ export default function RawShowcase({ particleRef }) {
             </div>
           </div>
 
-          {/* Features grid */}
-          <div className="mt-20 md:mt-32 grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Sourced Naturally',
-                description: 'Direct from premier farms using sustainable practices'
-              },
-              {
-                title: 'Premium Quality',
-                description: 'Rigorous testing ensures highest standards'
-              },
-              {
-                title: 'Rich Flavor',
-                description: 'Carefully processed to preserve natural essence'
-              }
-            ].map((feature, idx) => (
-              <div key={idx} className="p-6 md:p-8 rounded-xl bg-stone-800/50 border border-stone-700/50 hover:border-yellow-600/30 transition-all duration-300">
-                <h3 className="text-lg md:text-xl font-semibold text-white mb-3">{feature.title}</h3>
-                <p className="text-gray-400 text-sm md:text-base">{feature.description}</p>
-              </div>
-            ))}
-          </div>
+
         </div>
       </section>
     </>

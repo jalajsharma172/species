@@ -61,24 +61,42 @@ export default function GrinderSection({ particleRef }){
       }catch(e){ console.warn('grinder init failed', e) }
     })()
 
-    // ensure video attempts to play (muted)
-    try{ videoRef.current?.play?.() }catch(e){}
+    // ensure video attempts to play (muted) only when in view
+    if (videoRef.current) {
+      const observer = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+          try { videoRef.current.play(); } catch(e) {}
+        } else {
+          try { videoRef.current.pause(); } catch(e) {}
+        }
+      }, { threshold: 0 });
+      observer.observe(videoRef.current);
+      
+      return () => {
+        observer.disconnect();
+        if (ctx && ctx.revert) ctx.revert();
+      }
+    }
 
     return ()=> ctx && ctx.revert && ctx.revert()
   },[])
 
   return (
     <section className="min-h-screen section-sticky relative flex items-center overflow-hidden" ref={wrapRef} aria-labelledby="grinder-heading">
-      {/* background video */}
+      {/*
       
+            
       <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover hero-video" src="/grind.mp4" autoPlay muted loop playsInline />
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/80"></div>
 
-   
-      {/* subtle grain / dust over entire section */}
       <div className="absolute inset-0 pointer-events-none z-30" aria-hidden>
         <canvas id="grinder-grain" className="w-full h-full mix-blend-screen opacity-30"></canvas>
       </div>
+      
+      
+      
+      */}
+
     </section>
   )
 }

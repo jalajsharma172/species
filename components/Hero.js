@@ -5,21 +5,28 @@ export default function Hero({ particleRef }){
   const videoRef = useRef(null)
 
   useEffect(()=>{
-    // spawn gentle ambient particles on mount
-    // if(particleRef && particleRef.current){
-    //   particleRef.current.spawn({ amount: 60, color: '#D8A700', spread: 900, size: 6 })
-    //   particleRef.current.spawn({ amount: 36, color: '#9B1C14', spread: 900, size: 5 })
-    // }
+    if(!videoRef.current) return;
 
-    // Attempt to play video programmatically for autoplay consistency
-    if(videoRef.current){
-      try{
-        videoRef.current.muted = true
-        const p = videoRef.current.play()
-        if(p && p.catch) p.catch(e=> console.warn('video play prevented', e))
-      }catch(e){ console.warn('video play attempt failed', e) }
-    }
-  },[particleRef])
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        try {
+          videoRef.current.muted = true;
+          const p = videoRef.current.play();
+          if (p && p.catch) p.catch(e => console.warn('video play prevented', e));
+        } catch (e) { console.warn('video play attempt failed', e); }
+      } else {
+        try {
+          videoRef.current.pause();
+        } catch (e) { console.warn('video pause attempt failed', e); }
+      }
+    }, { threshold: 0 });
+
+    observer.observe(videoRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [particleRef]);
 
   return (
     <section id="hero" className="section-sticky min-h-screen flex items-center justify-center relative overflow-hidden">
