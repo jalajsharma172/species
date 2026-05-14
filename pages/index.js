@@ -17,8 +17,8 @@ export default function Home() {
         <RawShowcase particleRef={particleRef} />
         {/* <GrinderSection particleRef={particleRef} /> */}
         {/* <PowderSection particleRef={particleRef} /> */}
-        {/* <PackagingSection particleRef={particleRef} /> */}
-        {/* <FinalReveal particleRef={particleRef} /> */}
+        <PackagingSection particleRef={particleRef} />
+        <FinalReveal particleRef={particleRef} />
       </main>
     </Layout>
   )
