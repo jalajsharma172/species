@@ -1,29 +1,29 @@
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const products = [
   {
-    id: 'haldi',
-    name: 'Turmeric Powder',
-    image: '/images/s3.png',
-    color: '#D8A700',
+    id: "haldi",
+    name: "Turmeric Powder",
+    image: "/images/s3.png",
+    color: "#D8A700",
   },
   {
-    id: 'chilli',
-    name: 'Red Chilli Powder',
-    image: '/images/s2.png',
-    color: '#C62828',
+    id: "chilli",
+    name: "Red Chilli Powder",
+    image: "/images/Red.png",
+    color: "#C62828",
   },
   {
-    id: 'coriander',
-    name: 'Coriander Powder',
-    image: '/images/s1.png',
-    color: '#7A8B2E',
+    id: "coriander",
+    name: "Coriander Powder",
+    image: "/images/s1.png",
+    color: "#7A8B2E",
   },
-]
+];
 
 export default function FinalReveal({ particleRef }) {
-  const [activeProduct, setActiveProduct] = useState(products[0])
+  const [activeProduct, setActiveProduct] = useState(products[0]);
 
   return (
     <section
@@ -48,7 +48,7 @@ export default function FinalReveal({ particleRef }) {
         transition={{
           duration: 6,
           repeat: Infinity,
-          ease: 'easeInOut',
+          ease: "easeInOut",
         }}
       />
 
@@ -63,12 +63,11 @@ export default function FinalReveal({ particleRef }) {
         transition={{
           duration: 8,
           repeat: Infinity,
-          ease: 'easeInOut',
+          ease: "easeInOut",
         }}
       />
 
       <div className="container mx-auto px-10 grid lg:grid-cols-2 gap-16 items-center relative z-10">
-
         {/* LEFT CONTENT */}
         <motion.div
           initial={{ opacity: 0, x: -60 }}
@@ -119,22 +118,20 @@ export default function FinalReveal({ particleRef }) {
                 key={product.id}
                 onClick={() => setActiveProduct(product)}
                 className={`px-5 py-3 rounded-full border transition-all duration-300 backdrop-blur-md
-                ${activeProduct.id === product.id
-                    ? 'bg-white text-black border-white shadow-2xl'
-                    : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
-                  }`}
+                ${
+                  activeProduct.id === product.id
+                    ? "bg-white text-black border-white shadow-2xl"
+                    : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                }`}
               >
                 {product.name}
               </motion.button>
             ))}
           </div>
 
-          <motion.div
-            className="mt-10"
-            whileHover={{ scale: 1.05 }}
-          >
+          <motion.div className="mt-10" whileHover={{ scale: 1.05 }}>
             <a
-              href="#"
+              href="#contact"
               className="px-8 py-4 bg-white text-black rounded-full text-lg font-medium inline-block shadow-xl"
             >
               Experience Authentic Spice
@@ -144,7 +141,6 @@ export default function FinalReveal({ particleRef }) {
 
         {/* RIGHT PRODUCT SHOWCASE */}
         <div className="flex items-center justify-center relative min-h-[700px]">
-
           {/* Dynamic Glow */}
           <motion.div
             className="absolute w-[450px] h-[450px] rounded-full blur-3xl opacity-30"
@@ -155,7 +151,7 @@ export default function FinalReveal({ particleRef }) {
             transition={{
               duration: 5,
               repeat: Infinity,
-              ease: 'easeInOut',
+              ease: "easeInOut",
             }}
             style={{
               background: activeProduct.color,
@@ -169,12 +165,11 @@ export default function FinalReveal({ particleRef }) {
             transition={{
               duration: 40,
               repeat: Infinity,
-              ease: 'linear',
+              ease: "linear",
             }}
           />
 
           <AnimatePresence mode="wait">
-
             <motion.div
               key={activeProduct.id}
               initial={{
@@ -202,7 +197,7 @@ export default function FinalReveal({ particleRef }) {
                 y: {
                   duration: 4,
                   repeat: Infinity,
-                  ease: 'easeInOut',
+                  ease: "easeInOut",
                 },
               }}
               whileHover={{
@@ -217,14 +212,13 @@ export default function FinalReveal({ particleRef }) {
                   color: activeProduct.color,
                   spread: 70,
                   size: 5,
-                })
+                });
               }}
               className="relative z-10"
               style={{
-                transformStyle: 'preserve-3d',
+                transformStyle: "preserve-3d",
               }}
             >
-
               {/* Floating Product Image */}
               <motion.img
                 src={activeProduct.image}
@@ -236,16 +230,14 @@ export default function FinalReveal({ particleRef }) {
                 transition={{
                   duration: 6,
                   repeat: Infinity,
-                  ease: 'easeInOut',
+                  ease: "easeInOut",
                 }}
                 draggable={false}
               />
-
             </motion.div>
-
           </AnimatePresence>
         </div>
       </div>
     </section>
-  )
+  );
 }

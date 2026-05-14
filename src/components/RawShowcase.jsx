@@ -1,297 +1,276 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from "react";
+
+// Floating dust/spice particle
+function DustParticle({ style }) {
+  return (
+    <div
+      className="absolute rounded-full pointer-events-none"
+      style={{
+        width: style.size,
+        height: style.size,
+        left: style.left,
+        bottom: "-10px",
+        background: style.color,
+        opacity: 0,
+        animation: `dustRise ${style.duration}s ease-in ${style.delay}s infinite`,
+        filter: "blur(0.6px)",
+      }}
+    />
+  );
+}
+
+function generateParticles(count = 28) {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+    size: `${Math.random() * 3 + 1.5}px`,
+    left: `${Math.random() * 100}%`,
+    duration: 5 + Math.random() * 6,
+    delay: Math.random() * 6,
+    color: [
+      "rgba(234,179,8,0.55)",
+      "rgba(180,83,9,0.45)",
+      "rgba(253,224,71,0.5)",
+      "rgba(220,130,50,0.4)",
+      "rgba(255,255,255,0.25)",
+    ][Math.floor(Math.random() * 5)],
+  }));
+}
+
+const PARTICLES = generateParticles(28);
 
 export default function RawShowcase({ particleRef }) {
-  const sectionRef = useRef(null)
-  const videoRef = useRef(null)
-  const containerRef = useRef(null)
-  const [isActive, setIsActive] = useState(false)
-  const [videoReady, setVideoReady] = useState(false)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [videoError, setVideoError] = useState(null)
-  const scrollFrameRef = useRef(null)
-  const lastScrollRef = useRef(0)
-  const scrollProgressRef = useRef(0)
-  const targetTimeRef = useRef(0)
-  const renderFrameRef = useRef(null)
-  const lastUpdateTimeRef = useRef(0)
-  const overlayRef = useRef(null)
+  const sectionRef = useRef(null);
+  const videoRef = useRef(null);
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoError, setVideoError] = useState(null);
+  const [showParticles, setShowParticles] = useState(false);
 
-  // Continuous render loop for smooth video scrubbing
-  const renderLoop = useCallback(() => {
-    if (videoRef.current && videoReady && videoRef.current.duration) {
-      const current = videoRef.current.currentTime
-      const target = targetTimeRef.current
-      const diff = target - current
-      const now = performance.now()
-
-      // Increase throttle to ~12-15fps (80ms) and remove lerping completely.
-      // Lerping causes a pile-up of frame decodes which exponentially lags 
-      // towards the end of standard MP4 files.
-      if (Math.abs(diff) > 0.04 && (now - lastUpdateTimeRef.current > 80)) {
-        videoRef.current.currentTime = target
-        lastUpdateTimeRef.current = now
-      }
-    }
-    renderFrameRef.current = requestAnimationFrame(renderLoop)
-  }, [videoReady])
-
-  // Start the render loop when video is ready
+  // Ambient effects always-on once video is ready
   useEffect(() => {
     if (videoReady) {
-      renderFrameRef.current = requestAnimationFrame(renderLoop)
+      setTimeout(() => setShowParticles(true), 400);
     }
-    return () => {
-      if (renderFrameRef.current) {
-        cancelAnimationFrame(renderFrameRef.current)
-      }
-    }
-  }, [videoReady, renderLoop])
+  }, [videoReady]);
 
-  // Calculate scroll progress and sync video timeline
-  const updateVideoTimeline = useCallback(() => {
-    if (!videoRef.current || !containerRef.current || !videoReady) return
-
-    const container = containerRef.current
-    const rect = container.getBoundingClientRect()
-    const windowHeight = window.innerHeight
-    const elementHeight = rect.height
-
-    // Calculate scroll progress: 0 to 1 based on sticky container
-    let scrollProgress = 0
-    const scrollDistance = elementHeight - windowHeight
-
-    if (scrollDistance > 0) {
-      scrollProgress = Math.max(0, Math.min(1, -rect.top / scrollDistance))
-    }
-
-    scrollProgressRef.current = scrollProgress
-
-    // Map scroll progress to video timeline
-    if (videoRef.current.duration) {
-      // Set the target time instead of updating video directly
-      targetTimeRef.current = scrollProgress * videoRef.current.duration
-
-      // Update playing state based on scroll
-      setIsPlaying(scrollProgress > 0.05 && scrollProgress < 0.95)
-    }
-
-    // Update overlay opacity directly for performance (avoids React re-renders)
-    if (overlayRef.current) {
-      const opacity = isActive && videoReady ? Math.max(0, (scrollProgress - 0.7) * 3.33) : 0;
-      overlayRef.current.style.opacity = opacity;
-    }
-  }, [videoReady, isActive])
-
-  // Smooth scroll listener with requestAnimationFrame
-  useEffect(() => {
-    const handleScroll = () => {
-      if (scrollFrameRef.current) {
-        cancelAnimationFrame(scrollFrameRef.current)
-      }
-      scrollFrameRef.current = requestAnimationFrame(updateVideoTimeline)
-      lastScrollRef.current = window.scrollY
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-      if (scrollFrameRef.current) {
-        cancelAnimationFrame(scrollFrameRef.current)
-      }
-    }
-  }, [videoReady, updateVideoTimeline])
-
-  // Intersection Observer to detect when container is in view
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsActive(entry.isIntersecting)
-        if (entry.isIntersecting && videoRef.current) {
-          // Reset or update video position when section comes into view
-          requestAnimationFrame(updateVideoTimeline)
-        }
-      },
-      {
-        threshold: [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1],
-      }
-    )
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current)
-    }
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [videoReady, updateVideoTimeline])
-
-  // Handle video metadata loaded
+  // ─── Video event handlers ─────────────────────────────────────────────────
   const handleVideoLoadedMetadata = useCallback(() => {
-    console.log('Video metadata loaded, duration:', videoRef.current?.duration)
-    setVideoReady(true)
-    setVideoError(null)
-    // Small delay to ensure video is fully ready
-    setTimeout(() => {
-      updateVideoTimeline()
-    }, 50)
-  }, [updateVideoTimeline])
+    setVideoReady(true);
+    setVideoError(null);
+  }, []);
 
-  // Handle video can play through
   const handleCanPlayThrough = useCallback(() => {
-    console.log('Video can play through')
-    if (!videoReady) {
-      setVideoReady(true)
-      setVideoError(null)
-    }
-  }, [videoReady])
+    if (!videoReady) setVideoReady(true);
+  }, [videoReady]);
 
-  // Handle video error
-  const handleVideoError = useCallback((e) => {
-    console.error('Video loading error:', e)
-    const error = videoRef.current?.error
-    let errorMsg = 'Error loading video'
-
+  const handleVideoError = useCallback(() => {
+    const error = videoRef.current?.error;
+    let errorMsg = "Error loading video";
     if (error) {
-      switch (error.code) {
-        case error.MEDIA_ERR_ABORTED:
-          errorMsg = 'Video loading was aborted'
-          break
-        case error.MEDIA_ERR_NETWORK:
-          errorMsg = 'Network error loading video'
-          break
-        case error.MEDIA_ERR_DECODE:
-          errorMsg = 'Video decode error'
-          break
-        case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-          errorMsg = 'Video format not supported'
-          break
-      }
+      const map = {
+        [MediaError.MEDIA_ERR_ABORTED]: "Video loading was aborted",
+        [MediaError.MEDIA_ERR_NETWORK]: "Network error loading video",
+        [MediaError.MEDIA_ERR_DECODE]: "Video decode error",
+        [MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED]: "Video format not supported",
+      };
+      errorMsg = map[error.code] || errorMsg;
     }
+    setVideoError(errorMsg);
+    setVideoReady(true);
+  }, []);
 
-    setVideoError(errorMsg)
-    // Mark as ready anyway so user can still interact
-    setVideoReady(true)
-  }, [])
+  const handleContextMenu = (e) => e.preventDefault();
 
-  // Handle video ended
-  const handleVideoEnded = useCallback(() => {
-    setIsPlaying(false)
-  }, [])
-
-  // Prevent right-click on video
-  const handleContextMenu = (e) => {
-    e.preventDefault()
-  }
-
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Spacer for scroll behavior - gives enough scroll distance to play through video */}
-      <div
-        ref={containerRef}
-        className="relative w-full h-[400vh]"
+      <style>{`
+        @keyframes dustRise {
+          0%   { transform: translateY(0) translateX(0) scale(1);   opacity: 0; }
+          10%  { opacity: 1; }
+          60%  { opacity: 0.7; }
+          100% { transform: translateY(-60vh) translateX(var(--drift, 30px)) scale(0.3); opacity: 0; }
+        }
+        @keyframes ambientBreath {
+          0%, 100% { opacity: 0.35; transform: scale(1); }
+          50%       { opacity: 0.55; transform: scale(1.015); }
+        }
+        @keyframes scanlineSweep {
+          0%   { transform: translateY(-100%); opacity: 0; }
+          10%  { opacity: 0.06; }
+          90%  { opacity: 0.06; }
+          100% { transform: translateY(100%); opacity: 0; }
+        }
+        @keyframes vignettePulse {
+          0%, 100% { opacity: 0.6; }
+          50%       { opacity: 0.85; }
+        }
+        @keyframes liveDot {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.3; }
+        }
+      `}</style>
+
+      <section
+        ref={sectionRef}
+        id="raw"
+        className="relative w-full h-screen flex items-center justify-center overflow-hidden z-30"
+        style={{
+          background:
+            "linear-gradient(135deg, #1a0f0a 0%, #2d1810 50%, #1a0f0a 100%)",
+        }}
       >
-        {/* Sticky video container */}
-        <section
-          ref={sectionRef}
-          id="raw"
-          className="sticky top-0 w-full h-screen flex items-center justify-center overflow-hidden z-30"
-          style={{
-            background: 'linear-gradient(135deg, #1a0f0a 0%, #2d1810 50%, #1a0f0a 100%)',
-          }}
-        >
-          {/* Video container */}
-          <div className="absolute inset-0 w-full h-full overflow-hidden bg-black/20">
-            <video
-              ref={videoRef}
-              onLoadedMetadata={handleVideoLoadedMetadata}
-              onCanPlayThrough={handleCanPlayThrough}
-              onEnded={handleVideoEnded}
-              onError={handleVideoError}
-              onContextMenu={handleContextMenu}
-              className="w-full h-full object-cover"
-              style={{ willChange: 'transform', transform: 'translateZ(0)' }}
-              muted
-              playsInline
-            >
-              <source src="/output.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+        {/* ── Video layer ── */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden bg-black/20">
+          <video
+            ref={videoRef}
+            onLoadedMetadata={handleVideoLoadedMetadata}
+            onCanPlayThrough={handleCanPlayThrough}
+            onError={handleVideoError}
+            onContextMenu={handleContextMenu}
+            className="w-full h-full object-cover"
+            style={{ willChange: "transform", transform: "translateZ(0)" }}
+            muted
+            autoPlay
+            loop
+            playsInline
+          >
+            <source src="/output.mp4" type="video/mp4" />
+          </video>
 
-            {/* Premium gradient overlay for cinematic effect */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
 
-            {/* Subtle vignette effect */}
-            <div className="absolute inset-0 shadow-inner"
+          {/* Pulsing vignette */}
+          <div
+            className="absolute inset-0"
+            style={{
+              boxShadow:
+                "inset 0 0 80px rgba(0,0,0,0.6), inset 0 0 40px rgba(0,0,0,0.3)",
+              animation: videoReady
+                ? "vignettePulse 3.5s ease-in-out infinite"
+                : "none",
+            }}
+          />
+
+          {/* Scanline sweep */}
+          {videoReady && (
+            <div
+              className="absolute inset-0 pointer-events-none"
               style={{
-                boxShadow: 'inset 0 0 80px rgba(0,0,0,0.6), inset 0 0 40px rgba(0,0,0,0.3)'
+                background:
+                  "linear-gradient(to bottom, transparent 49%, rgba(255,220,80,0.07) 50%, transparent 51%)",
+                animation: "scanlineSweep 7s linear infinite",
               }}
             />
-          </div>
-
-          {/* Content overlay (appears as video progresses) */}
-          <div ref={overlayRef} className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-100" style={{ opacity: 0 }}>
-            <div className="text-center text-white z-10" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
-              <h3 className="text-5xl md:text-6xl font-bold mb-4 font-serif">Raw Ingredients</h3>
-              <p className="text-lg md:text-xl text-gray-200">Fresh turmeric roots and dried red chillies</p>
-            </div>
-          </div>
-
-          {/* Scroll indicator (shows on first visit) */}
-          {videoReady && scrollProgressRef.current < 0.05 && (
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 animate-pulse">
-              <div className="text-white/60 text-xs md:text-sm mb-2 text-center tracking-widest uppercase">Scroll to explore</div>
-              <svg className="w-6 h-6 text-white/60 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-            </div>
           )}
 
-          {/* Loading state */}
-          {!videoReady && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-2 border-transparent border-t-yellow-600 rounded-full animate-spin" />
-                <p className="text-white/60 text-sm">Loading immersive experience...</p>
-                {videoError && (
-                  <p className="text-red-400/80 text-xs text-center max-w-xs">{videoError}</p>
-                )}
-                <button
-                  onClick={() => {
-                    setVideoReady(true)
-                    setVideoError(null)
-                  }}
-                  className="mt-4 px-4 py-2 text-xs text-white/70 border border-white/20 rounded hover:border-white/40 hover:text-white transition-all"
-                >
-                  Skip Loading
-                </button>
-              </div>
-            </div>
+          {/* Warm amber breathing glow */}
+          {videoReady && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse 70% 60% at 50% 55%, rgba(180,83,9,0.18) 0%, transparent 70%)",
+                animation: "ambientBreath 3.5s ease-in-out infinite",
+              }}
+            />
           )}
-        </section>
-      </div>
 
-      {/* Content section that appears after video completes */}
+          {/* Floating dust particles */}
+          {showParticles &&
+            PARTICLES.map((p) => <DustParticle key={p.id} style={p} />)}
+        </div>
+
+        {/* ── Centre text ── */}
+        {videoReady && (
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+            style={{ animation: "ambientBreath 5s ease-in-out infinite" }}
+          >
+            <div
+              className="text-center text-white z-10"
+              style={{ textShadow: "0 4px 20px rgba(0,0,0,0.8)" }}
+            >
+              <h3 className="text-5xl md:text-6xl font-bold mb-4 font-serif"></h3>
+            </div>
+          </div>
+        )}
+
+        {/* ── Live badge ── */}
+        {videoReady && (
+          <div
+            className="absolute top-6 right-6 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full pointer-events-none"
+            style={{
+              background: "rgba(0,0,0,0.45)",
+              border: "1px solid rgba(234,179,8,0.3)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-yellow-400"
+              style={{ animation: "liveDot 1.2s ease-in-out infinite" }}
+            />
+            <span className="text-yellow-400/80 text-xs tracking-widest uppercase font-medium">
+              Live
+            </span>
+          </div>
+        )}
+
+        {/* ── Loading state ── */}
+        {!videoReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 border-2 border-transparent border-t-yellow-600 rounded-full animate-spin" />
+              <p className="text-white/60 text-sm">
+                Loading immersive experience...
+              </p>
+              {videoError && (
+                <p className="text-red-400/80 text-xs text-center max-w-xs">
+                  {videoError}
+                </p>
+              )}
+              <button
+                onClick={() => {
+                  setVideoReady(true);
+                  setVideoError(null);
+                }}
+                className="mt-4 px-4 py-2 text-xs text-white/70 border border-white/20 rounded hover:border-white/40 hover:text-white transition-all"
+              >
+                Skip Loading
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── Post-video content section ── */}
       <section className="relative z-10 min-h-screen bg-gradient-to-b from-stone-900 via-stone-950 to-stone-900 py-20 md:py-32">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
             <div className="space-y-6 md:space-y-8">
               <div>
-                <p className="text-yellow-600 text-sm md:text-base tracking-widest uppercase mb-4">Premium Quality</p>
+                <p className="text-yellow-600 text-sm md:text-base tracking-widest uppercase mb-4">
+                  Premium Quality
+                </p>
                 <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
                   Raw Ingredients
                 </h2>
               </div>
               <p className="text-lg md:text-xl text-gray-300 leading-relaxed">
-                Experience the journey from raw turmeric roots to our premium spice blend.
-                Each ingredient is carefully selected and processed to maintain maximum flavor and nutritional value.
+                Experience the journey from raw turmeric roots to our premium
+                spice blend. Each ingredient is carefully selected and processed
+                to maintain maximum flavor and nutritional value.
               </p>
               <p className="text-base md:text-lg text-gray-400 leading-relaxed">
-                Fresh turmeric roots and dried red chillies presented with macro texture studies
-                and layered parallax for an immersive visual experience.
+                Fresh turmeric roots and dried red chillies presented with macro
+                texture studies and layered parallax for an immersive visual
+                experience.
               </p>
               <div className="pt-4 md:pt-8">
-                <button className="px-8 md:px-10 py-3 md:py-4 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-yellow-600/50 transform hover:scale-105">
+                <button
+                  onClick={() => (window.location.href = "#final")}
+                  className="px-8 md:px-10 py-3 md:py-4 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-yellow-600/50 transform hover:scale-105"
+                >
                   Explore Products
                 </button>
               </div>
@@ -305,21 +284,8 @@ export default function RawShowcase({ particleRef }) {
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
             </div>
           </div>
-
-
         </div>
       </section>
     </>
-  )
+  );
 }
-
-// <div className="w-6/12 pr-8">
-//         <div className="turmeric-img rounded-2xl overflow-hidden shadow-2xl" style={{height:420, background:'linear-gradient(180deg,#2f1608,#7b3f12)'}}>
-//           {/* Replace with a macro closeup image in /public/images/turmeric-root.jpg */}
-//         </div>
-//       </div>
-//       <div className="w-5/12 pl-8">
-//         <h3 className="text-4xl font-heading">Raw Ingredients — Macro</h3>
-//         <p className="mt-4 text-lg text-beige/90">Fresh turmeric roots and dried red chillies presented with macro texture studies and layered parallax.</p>
-//         <div className="mt-8 chilli-img w-48 h-44 rounded-lg bg-gradient-to-tr from-red-800 to-red-400 shadow-lg"></div>
-//       </div>
