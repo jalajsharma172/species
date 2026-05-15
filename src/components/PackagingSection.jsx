@@ -1,24 +1,23 @@
-import React from 'react'
+import React from "react";
 
 export default function PackagingSection() {
   return (
     <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
-
       {/* GIF Background */}
       <div
         style={{
-          position: 'absolute',
+          position: "absolute",
           inset: 0,
           backgroundImage: "url('/gif/prepgf.gif')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
           filter: `
             brightness(1.08)
             contrast(0.92)
             saturate(0.82)
           `,
-          transform: 'scale(1.02)',
+          transform: "scale(1.02)",
           zIndex: 0,
         }}
       />
@@ -26,7 +25,7 @@ export default function PackagingSection() {
       {/* Top Soft Blend Overlay */}
       <div
         style={{
-          position: 'absolute',
+          position: "absolute",
           inset: 0,
           background: `
             linear-gradient(
@@ -37,10 +36,9 @@ export default function PackagingSection() {
             )
           `,
           zIndex: 1,
-          pointerEvents: 'none',
+          pointerEvents: "none",
         }}
       />
-
     </section>
-  )
+  );
 }

@@ -123,14 +123,14 @@ export default function ContactSection() {
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Rotating decorative ring */}
+      {/* Rotating decorative ring - hidden on mobile to prevent overflow */}
       <motion.div
-        className="absolute right-[-120px] top-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/5 rounded-full"
+        className="hidden lg:block absolute right-[-120px] top-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/5 rounded-full"
         animate={{ rotate: 360 }}
         transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
       />
       <motion.div
-        className="absolute right-[-80px] top-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-yellow-600/10 rounded-full"
+        className="hidden lg:block absolute right-[-80px] top-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-yellow-600/10 rounded-full"
         animate={{ rotate: -360 }}
         transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
       />
@@ -154,7 +154,7 @@ export default function ContactSection() {
             Get In Touch
           </motion.p>
           <motion.h2
-            className="text-5xl md:text-6xl font-heading text-white leading-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading text-white leading-tight"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1 }}
@@ -276,7 +276,7 @@ export default function ContactSection() {
                     onSubmit={handleSubmit}
                     className="space-y-5"
                   >
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-4">
                       <div className="relative">
                         <input
                           type="text"

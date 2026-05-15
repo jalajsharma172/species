@@ -67,7 +67,7 @@ export default function FinalReveal({ particleRef }) {
         }}
       />
 
-      <div className="container mx-auto px-10 grid lg:grid-cols-2 gap-16 items-center relative z-10">
+      <div className="container mx-auto px-5 sm:px-8 md:px-10 grid lg:grid-cols-2 gap-10 md:gap-16 items-center relative z-10">
         {/* LEFT CONTENT */}
         <motion.div
           initial={{ opacity: 0, x: -60 }}
@@ -85,7 +85,7 @@ export default function FinalReveal({ particleRef }) {
           </motion.p>
 
           <motion.h2
-            className="text-5xl leading-tight font-heading text-white"
+            className="text-3xl sm:text-4xl md:text-5xl leading-tight font-heading text-white"
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
@@ -129,10 +129,10 @@ export default function FinalReveal({ particleRef }) {
             ))}
           </div>
 
-          <motion.div className="mt-10" whileHover={{ scale: 1.05 }}>
+          <motion.div className="mt-8 md:mt-10" whileHover={{ scale: 1.05 }}>
             <a
               href="#contact"
-              className="px-8 py-4 bg-white text-black rounded-full text-lg font-medium inline-block shadow-xl"
+              className="px-6 md:px-8 py-3 md:py-4 bg-white text-black rounded-full text-base md:text-lg font-medium inline-block shadow-xl"
             >
               Experience Authentic Spice
             </a>
@@ -140,10 +140,10 @@ export default function FinalReveal({ particleRef }) {
         </motion.div>
 
         {/* RIGHT PRODUCT SHOWCASE */}
-        <div className="flex items-center justify-center relative min-h-[700px]">
+        <div className="flex items-center justify-center relative min-h-[340px] sm:min-h-[500px] lg:min-h-[700px]">
           {/* Dynamic Glow */}
           <motion.div
-            className="absolute w-[450px] h-[450px] rounded-full blur-3xl opacity-30"
+            className="absolute w-[240px] h-[240px] sm:w-[350px] sm:h-[350px] lg:w-[450px] lg:h-[450px] rounded-full blur-3xl opacity-30"
             animate={{
               scale: [1, 1.15, 1],
               opacity: [0.25, 0.4, 0.25],
@@ -160,7 +160,7 @@ export default function FinalReveal({ particleRef }) {
 
           {/* Rotating Ring */}
           <motion.div
-            className="absolute w-[520px] h-[520px] border border-white/10 rounded-full"
+            className="absolute w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] lg:w-[520px] lg:h-[520px] border border-white/10 rounded-full"
             animate={{ rotate: 360 }}
             transition={{
               duration: 40,
@@ -223,7 +223,7 @@ export default function FinalReveal({ particleRef }) {
               <motion.img
                 src={activeProduct.image}
                 alt={activeProduct.name}
-                className="w-[430px] object-contain drop-shadow-[0_35px_70px_rgba(0,0,0,0.55)]"
+                className="w-[220px] sm:w-[320px] lg:w-[430px] object-contain drop-shadow-[0_35px_70px_rgba(0,0,0,0.55)]"
                 animate={{
                   rotate: [0, 1.5, -1.5, 0],
                 }}

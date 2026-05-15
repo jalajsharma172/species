@@ -70,7 +70,7 @@ export default function Hero({ particleRef }) {
         </motion.h1>
 
         <motion.p
-          className="p-sub max-w-xl mx-auto"
+          className="p-sub max-w-xl mx-auto text-sm md:text-base"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.8 }}
@@ -79,18 +79,24 @@ export default function Hero({ particleRef }) {
         </motion.p>
 
         <motion.div
-          className="mt-10 flex items-center justify-center gap-4 hero-cta"
+          className="mt-8 md:mt-10 flex flex-wrap items-center justify-center gap-3 hero-cta"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
         >
-          <a href="#raw" className="btn-glow btn-primary">
+          <a href="#raw" className="btn-glow btn-primary text-sm md:text-base">
             Explore Journey
           </a>
-          <a href="#final" className="btn-glow btn-secondary">
+          <a
+            href="#final"
+            className="btn-glow btn-secondary text-sm md:text-base"
+          >
             View Products
           </a>
-          <a href="#contact" className="btn-glow btn-secondary">
+          <a
+            href="#contact"
+            className="btn-glow btn-secondary text-sm md:text-base"
+          >
             Contact Us
           </a>
         </motion.div>
