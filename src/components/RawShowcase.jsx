@@ -45,14 +45,12 @@ export default function RawShowcase({ particleRef }) {
   const [videoError, setVideoError] = useState(null);
   const [showParticles, setShowParticles] = useState(false);
 
-  // Ambient effects always-on once video is ready
   useEffect(() => {
     if (videoReady) {
       setTimeout(() => setShowParticles(true), 400);
     }
   }, [videoReady]);
 
-  // ─── Video event handlers ─────────────────────────────────────────────────
   const handleVideoLoadedMetadata = useCallback(() => {
     setVideoReady(true);
     setVideoError(null);
@@ -80,7 +78,6 @@ export default function RawShowcase({ particleRef }) {
 
   const handleContextMenu = (e) => e.preventDefault();
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <>
       <style>{`
@@ -128,7 +125,14 @@ export default function RawShowcase({ particleRef }) {
             onError={handleVideoError}
             onContextMenu={handleContextMenu}
             className="w-full h-full object-cover"
-            style={{ willChange: "transform", transform: "translateZ(0)" }}
+            style={{
+              /* FIX: Replaced willChange:"transform" + translateZ(0) combo with a single
+                 GPU-composited property. Using translateZ(0) alone is cleaner;
+                 will-change:"transform" on a video element caused unnecessary layer
+                 promotions that interacted badly with the fixed canvas overlay. */
+              transform: "translateZ(0)",
+              backfaceVisibility: "hidden",
+            }}
             muted
             autoPlay
             loop
@@ -275,7 +279,15 @@ export default function RawShowcase({ particleRef }) {
                 </button>
               </div>
             </div>
-            <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
+
+            {/* FIX: Replaced fixed h-[400px] with aspect-ratio + max-height clamp.
+                On xs screens the image was either cropped or too tall;
+                aspect-[4/3] + max-h-[min(60vw,500px)] keeps it proportional
+                at every viewport width without overflow. */}
+            <div
+              className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
+              style={{ aspectRatio: "4/3", maxHeight: "min(60vw, 500px)" }}
+            >
               <img
                 src="/truck.png"
                 alt="Turmeric Roots - Premium Quality Ingredients"

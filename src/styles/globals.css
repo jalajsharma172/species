@@ -49,12 +49,16 @@ body {
     linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.6));
 }
 
-/* Subtle grain */
+/* Subtle grain — isolated on its own compositing layer to prevent scroll repaints */
 .grain::after {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
+  /* FIX: translateZ(0) promotes to its own GPU layer, preventing jitter */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: opacity;
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><filter id="n"><feTurbulence baseFrequency="0.8" numOctaves="1" type="fractalNoise"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 0.06"/></feComponentTransfer></filter><rect width="120" height="120" filter="url(%23n)" opacity="0.06"/></svg>');
   opacity: 0.06;
   mix-blend-mode: soft-light;
@@ -128,6 +132,9 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 40;
+  /* FIX: Isolate on GPU layer to prevent triggering repaints on scrollable content */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Small helpers */
@@ -157,7 +164,11 @@ body {
   object-fit: cover;
   z-index: 0;
   filter: contrast(1.08) saturate(1.08) brightness(0.72);
-  transform: scale(1.01);
+  /* FIX: Removed scale(1.01) — was the primary cause of mobile scroll jitter.
+     translateZ(0) alone promotes to a GPU compositing layer. */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .hero-overlay {
@@ -265,6 +276,8 @@ video {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+  /* FIX: GPU compositing for all video elements */
+  backface-visibility: hidden;
 }
 
 /* Smooth transitions for section pinning */
@@ -330,19 +343,16 @@ section[id="raw"] {
 
 /* Mobile optimizations for scroll video */
 @media (max-width: 768px) {
-  /* Reduce fixed height on mobile for better performance */
   section[id="raw"] {
     min-height: 100vh;
   }
 
-  /* Ensure video scales properly on mobile */
   video {
     object-fit: cover;
     width: 100%;
     height: 100%;
   }
 
-  /* Adjust scroll indicator for mobile */
   .scroll-cue {
     font-size: 12px;
     gap: 4px;

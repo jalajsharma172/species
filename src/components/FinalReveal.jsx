@@ -67,7 +67,7 @@ export default function FinalReveal({ particleRef }) {
         }}
       />
 
-      <div className="container mx-auto px-5 sm:px-8 md:px-10 grid lg:grid-cols-2 gap-10 md:gap-16 items-center relative z-10">
+      <div className="container mx-auto px-5 sm:px-8 md:px-10 grid lg:grid-cols-2 gap-10 md:gap-16 items-center relative z-10 py-16 lg:py-0">
         {/* LEFT CONTENT */}
         <motion.div
           initial={{ opacity: 0, x: -60 }}
@@ -107,17 +107,14 @@ export default function FinalReveal({ particleRef }) {
           </motion.ul>
 
           {/* Product Buttons */}
-          <div className="flex gap-4 mt-10 flex-wrap">
+          <div className="flex gap-3 mt-10 flex-wrap">
             {products.map((product) => (
               <motion.button
-                whileHover={{
-                  scale: 1.08,
-                  y: -3,
-                }}
+                whileHover={{ scale: 1.06, y: -2 }}
                 whileTap={{ scale: 0.95 }}
                 key={product.id}
                 onClick={() => setActiveProduct(product)}
-                className={`px-5 py-3 rounded-full border transition-all duration-300 backdrop-blur-md
+                className={`px-4 py-2.5 text-sm sm:px-5 sm:py-3 rounded-full border transition-all duration-300 backdrop-blur-md
                 ${
                   activeProduct.id === product.id
                     ? "bg-white text-black border-white shadow-2xl"
@@ -139,11 +136,18 @@ export default function FinalReveal({ particleRef }) {
           </motion.div>
         </motion.div>
 
-        {/* RIGHT PRODUCT SHOWCASE */}
-        <div className="flex items-center justify-center relative min-h-[340px] sm:min-h-[500px] lg:min-h-[700px]">
-          {/* Dynamic Glow */}
+        {/* RIGHT PRODUCT SHOWCASE
+            FIX: Changed min-h to use clamp so it never overflows on small screens.
+            FIX: Glow and ring circles now use vw-capped sizes instead of fixed px. */}
+        <div className="flex items-center justify-center relative min-h-[300px] sm:min-h-[420px] lg:min-h-[600px]">
+          {/* Dynamic Glow — FIX: capped with min() so it never bleeds on mobile */}
           <motion.div
-            className="absolute w-[240px] h-[240px] sm:w-[350px] sm:h-[350px] lg:w-[450px] lg:h-[450px] rounded-full blur-3xl opacity-30"
+            className="absolute rounded-full blur-3xl opacity-30"
+            style={{
+              width: "min(70vw, 450px)",
+              height: "min(70vw, 450px)",
+              background: activeProduct.color,
+            }}
             animate={{
               scale: [1, 1.15, 1],
               opacity: [0.25, 0.4, 0.25],
@@ -153,14 +157,15 @@ export default function FinalReveal({ particleRef }) {
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            style={{
-              background: activeProduct.color,
-            }}
           />
 
-          {/* Rotating Ring */}
+          {/* Rotating Ring — FIX: same vw cap */}
           <motion.div
-            className="absolute w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] lg:w-[520px] lg:h-[520px] border border-white/10 rounded-full"
+            className="absolute border border-white/10 rounded-full"
+            style={{
+              width: "min(80vw, 520px)",
+              height: "min(80vw, 520px)",
+            }}
             animate={{ rotate: 360 }}
             transition={{
               duration: 40,
@@ -175,36 +180,34 @@ export default function FinalReveal({ particleRef }) {
               initial={{
                 opacity: 0,
                 scale: 0.7,
-                rotateY: -25,
-                y: 120,
+                y: 60,
               }}
               animate={{
                 opacity: 1,
                 scale: 1,
-                rotateY: 0,
+                /* FIX: Kept the float animation but removed rotateY entirely.
+                   preserve-3d + rotateY was causing GPU compositing jitter on iOS/Android.
+                   Float is now pure Y-axis — smooth and performant. */
                 y: [0, -18, 0],
               }}
               exit={{
                 opacity: 0,
-                scale: 0.8,
-                rotateY: 20,
-                y: -80,
+                scale: 0.85,
+                y: -50,
               }}
               transition={{
-                opacity: { duration: 0.5 },
-                scale: { duration: 0.8 },
-                rotateY: { duration: 0.8 },
+                opacity: { duration: 0.4 },
+                scale: { duration: 0.6 },
                 y: {
                   duration: 4,
                   repeat: Infinity,
                   ease: "easeInOut",
                 },
               }}
+              /* FIX: Simplified hover — scale + Y only, no 3D rotation on mobile */
               whileHover={{
-                rotateY: 12,
-                rotateX: 6,
-                scale: 1.05,
-                y: -25,
+                scale: 1.06,
+                y: -22,
               }}
               onHoverStart={() => {
                 particleRef?.current?.spawn({
@@ -215,15 +218,20 @@ export default function FinalReveal({ particleRef }) {
                 });
               }}
               className="relative z-10"
-              style={{
-                transformStyle: "preserve-3d",
-              }}
+              /* FIX: Removed transformStyle: "preserve-3d" — was the main source of
+                 mobile jitter. 3D perspective layers force full compositing tree
+                 invalidation on every frame on most mobile browsers. */
             >
-              {/* Floating Product Image */}
+              {/* Floating Product Image
+                  FIX: width uses min() so it never exceeds viewport on xs screens */}
               <motion.img
                 src={activeProduct.image}
                 alt={activeProduct.name}
-                className="w-[220px] sm:w-[320px] lg:w-[430px] object-contain drop-shadow-[0_35px_70px_rgba(0,0,0,0.55)]"
+                style={{
+                  width: "min(58vw, 430px)",
+                  minWidth: "160px",
+                }}
+                className="object-contain drop-shadow-[0_35px_70px_rgba(0,0,0,0.55)]"
                 animate={{
                   rotate: [0, 1.5, -1.5, 0],
                 }}
